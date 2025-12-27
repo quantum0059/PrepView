@@ -10,6 +10,9 @@ import Link from "next/link"
 import {toast} from "sonner";
 import FormField from "@/components/FormField"
 import {useRouter} from "next/navigation";
+import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
+import {auth} from "@/firebase/client";
+import { signUp, signIn } from "@/lib/actions/auth.action";
 //sonner toast is shadcn compoenent used for define error more specifically
 
 
@@ -37,18 +40,71 @@ const AuthForm = ({type}: {type: FormType}) => {
       })
     
       // 2. Define a submit handler.
-      function onSubmit(values: z.infer<typeof formSchema>) {
+      async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
             if(type === 'sign-up'){
+
+                const { name, email, password } = values;
+
+                const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
+
+                const result = await signUp({
+                    uid: userCredentials.user.uid,
+                    name: name!,
+                    email,
+                    password,
+                })
+
+                if(!result || !result.success){
+                    toast.error(result?.message || 'Failed to create account');
+                    return;
+                }
                 toast.success('Account created successfully. Please sign in.');
                 router.push('/sign-in');
             }else{
+
+                const {email, password} = values;
+
+                const userCredentials = await signInWithEmailAndPassword(auth, email, password);
+
+                const idToken = await userCredentials.user.getIdToken();
+                
+                if(!idToken){
+                    toast.error('Sign in failed');
+                    return;
+                }
+
+                const result = await signIn({
+                    email, idToken
+                });
+
+                if(!result || !result.success){
+                    toast.error(result?.message || 'Failed to sign in');
+                    return;
+                }
+
                 toast.success('Signed-in successfully.');
                 router.push('/');
             }
-        } catch (error) {
-            console.log(error);
-            toast.error(`There was an error: ${error}`)
+        } catch (error: any) {
+            console.error("Auth error:", error);
+            
+            // Handle Firebase Auth errors
+            let errorMessage = 'An error occurred';
+            
+            if(error?.code === 'auth/user-not-found'){
+                errorMessage = 'User does not exist. Please sign up first.';
+            } else if(error?.code === 'auth/wrong-password'){
+                errorMessage = 'Incorrect password. Please try again.';
+            } else if(error?.code === 'auth/invalid-email'){
+                errorMessage = 'Invalid email address.';
+            } else if(error?.code === 'auth/too-many-requests'){
+                errorMessage = 'Too many failed attempts. Please try again later.';
+            } else if(error?.message){
+                errorMessage = error.message;
+            }
+            
+            toast.error(errorMessage);
         }
     }
 
