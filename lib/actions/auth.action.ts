@@ -1,5 +1,6 @@
 'use server'
 import { db, auth } from "@/firebase/admin";
+import { CollectionReference, DocumentReference } from "firebase-admin/firestore";
 import {cookies} from "next/headers";
 
 const ONE_WEEK = 60*60*24*7;
@@ -49,20 +50,24 @@ export async function signIn(params: SignInParams){
     const { email, idToken} = params;
 
     try {
-        // Verify user exists - getUserByEmail throws if user doesn't exist
-        const userRecord = await auth.getUserByEmail(email);
-
-        // Verify the idToken matches the user
-        const decodedToken = await auth.verifyIdToken(idToken);
+        console.log("SignIn: Starting sign in process for:", email);
         
+        // Verify the idToken - this is sufficient as it proves the user is authenticated
+        const decodedToken = await auth.verifyIdToken(idToken);
+        console.log("SignIn: Token verified for:", decodedToken.email);
+        
+        // Verify the email in the token matches the provided email
         if(decodedToken.email !== email){
+            console.error("SignIn: Email mismatch");
             return {
                 success: false,
                 message: 'Invalid credentials'
             };
         }
 
+        // Create and set session cookie
         await setSessionCookie(idToken);
+        console.log("SignIn: Session cookie set successfully");
 
         return {
             success: true,
@@ -71,12 +76,14 @@ export async function signIn(params: SignInParams){
         
     } catch (e: any) {
          console.error("Error signing in:", e);
+         console.error("Error code:", e.code);
+         console.error("Error message:", e.message);
 
          // Handle specific Firebase Auth errors
-         if(e.code === 'auth/user-not-found'){
+         if(e.code === 'auth/user-not-found' || e.code === 'auth/user-disabled'){
             return {
                 success: false,
-                message: 'User does not exist. Create an account instead.'
+                message: 'User does not exist or is disabled. Create an account instead.'
             };
          }
 
@@ -84,6 +91,13 @@ export async function signIn(params: SignInParams){
             return {
                 success: false,
                 message: 'Invalid email or password'
+            };
+         }
+
+         if(e.code === 'auth/invalid-id-token' || e.code === 'auth/argument-error'){
+            return {
+                success: false,
+                message: 'Invalid session token. Please try again.'
             };
          }
 
@@ -95,17 +109,60 @@ export async function signIn(params: SignInParams){
 }
 
 export async function setSessionCookie(idToken: string){
-     const cookieStore = await cookies();
+    try {
+        const cookieStore = await cookies();
 
-     const sessionCookie = await auth.createSessionCookie(idToken, {
-        expiresIn: ONE_WEEK,
-     })
+        const sessionCookie = await auth.createSessionCookie(idToken, {
+            expiresIn: ONE_WEEK,
+        });
 
-     cookieStore.set('session', sessionCookie, {
-        maxAge: ONE_WEEK,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        sameSite: 'lax'
-     })
+        cookieStore.set('session', sessionCookie, {
+            maxAge: ONE_WEEK,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
+            sameSite: 'lax'
+        });
+        
+        console.log("Session cookie created and set successfully");
+    } catch (e: any) {
+        console.error("Error setting session cookie:", e);
+        throw e; // Re-throw to be caught by signIn
+    }
+}
+
+export async function getCurrentUser():Promise<User | null> {
+    const cookieStore = await cookies();
+
+    const sessionCookie = cookieStore.get('session')?.value;
+
+    if(!sessionCookie) return null;
+
+    try {
+          const decodeClaims = await auth.verifySessionCookie(sessionCookie, true);
+          
+          const userRecord = await db.
+                                collection('users')
+                                .doc(decodeClaims.uid)
+                                .get();
+
+          if(!userRecord) return null;
+
+          return{
+            ...userRecord.data(),
+            id:userRecord.id,
+          } as User;
+
+
+    } catch (e) {
+        console.log(e);     
+
+        return null;
+    }
+}
+
+export async function isAuthenticated(){
+    const user = await getCurrentUser();
+
+    return !!user;
 }
