@@ -18,33 +18,42 @@ import { signUp, signIn } from "@/lib/actions/auth.action";
 
 
 
-const authFormSchema = (type: FormType) => {
-    return z.object({
-        name: type === "sign-in" ? z.string().min(3) : z.string().optional(),
+const signInSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(3),
+});
 
-        email: z.string().email(),
-        password: z.string().min(3),
-    })
-}
+const signUpSchema = z.object({
+    name: z.string().min(3, "Name must be at least 3 characters"),
+    email: z.string().email(),
+    password: z.string().min(3, "Password must be at least 3 characters"),
+});
 
 const AuthForm = ({type}: {type: FormType}) => {
     const router = useRouter();
-    const formSchema = authFormSchema(type);
-    const form = useForm<z.infer<typeof formSchema>>({
+    const formSchema = type === "sign-in" ? signInSchema : signUpSchema;
+    const form = useForm({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-          name: "",
-          email: "",
-          password: ""
-        },
+        defaultValues: type === "sign-in" 
+          ? {
+              email: "",
+              password: ""
+            }
+          : {
+              name: "",
+              email: "",
+              password: ""
+            },
       })
     
       // 2. Define a submit handler.
-      async function onSubmit(values: z.infer<typeof formSchema>) {
+      async function onSubmit(values: any) {
+        console.log("onSubmit called with values:", values);
+        console.log("Form type:", type);
         try {
             if(type === 'sign-up'){
 
-                const { name, email, password } = values;
+                const { name, email, password } = values as { name: string; email: string; password: string };
 
                 const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -63,27 +72,47 @@ const AuthForm = ({type}: {type: FormType}) => {
                 router.push('/sign-in');
             }else{
 
-                const {email, password} = values;
+                const {email, password} = values as { email: string; password: string };
+
+                console.log("AuthForm: Starting sign in for:", email);
 
                 const userCredentials = await signInWithEmailAndPassword(auth, email, password);
+                console.log("AuthForm: Firebase Auth successful");
 
                 const idToken = await userCredentials.user.getIdToken();
+                console.log("AuthForm: Got idToken");
                 
                 if(!idToken){
-                    toast.error('Sign in failed');
+                    console.error("AuthForm: No idToken received");
+                    toast.error('Sign in failed - no token received');
                     return;
                 }
 
+                console.log("AuthForm: Calling signIn server action");
                 const result = await signIn({
                     email, idToken
                 });
 
-                if(!result || !result.success){
-                    toast.error(result?.message || 'Failed to sign in');
+                console.log("AuthForm: SignIn result:", result);
+
+                if(!result){
+                    console.error("AuthForm: No result returned from signIn");
+                    toast.error('Sign in failed - no response from server');
                     return;
                 }
 
+                if(!result.success){
+                    console.error("AuthForm: SignIn failed:", result.message);
+                    toast.error(result.message || 'Failed to sign in');
+                    return;
+                }
+
+                console.log("AuthForm: Sign in successful, showing toast and redirecting");
+                
+                // Show toast first
                 toast.success('Signed-in successfully.');
+                
+                // Use router.push directly - Next.js handles the navigation
                 router.push('/');
             }
         } catch (error: any) {
@@ -119,7 +148,13 @@ const AuthForm = ({type}: {type: FormType}) => {
            </div>
            <h3 className="text-center">Practise job interview with AI</h3>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-6 mt-4 form">
+            <form onSubmit={form.handleSubmit(
+                onSubmit,
+                (errors) => {
+                    console.log("Form validation errors:", errors);
+                    toast.error("Please fix the form errors");
+                }
+            )} className="w-full space-y-6 mt-4 form">
                  {!isSignIn &&  (
                     <FormField control={form.control} 
                                name="name" 
