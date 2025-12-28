@@ -121,7 +121,9 @@ const AuthForm = ({type}: {type: FormType}) => {
             // Handle Firebase Auth errors
             let errorMessage = 'An error occurred';
             
-            if(error?.code === 'auth/user-not-found'){
+            if(error?.code === 'auth/invalid-credential'){
+                errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+            } else if(error?.code === 'auth/user-not-found'){
                 errorMessage = 'User does not exist. Please sign up first.';
             } else if(error?.code === 'auth/wrong-password'){
                 errorMessage = 'Incorrect password. Please try again.';
@@ -129,6 +131,10 @@ const AuthForm = ({type}: {type: FormType}) => {
                 errorMessage = 'Invalid email address.';
             } else if(error?.code === 'auth/too-many-requests'){
                 errorMessage = 'Too many failed attempts. Please try again later.';
+            } else if(error?.code === 'auth/user-disabled'){
+                errorMessage = 'This account has been disabled. Please contact support.';
+            } else if(error?.code === 'auth/network-request-failed'){
+                errorMessage = 'Network error. Please check your connection and try again.';
             } else if(error?.message){
                 errorMessage = error.message;
             }
