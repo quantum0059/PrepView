@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {useRouter} from "next/navigation";
 import { vapi } from "@/lib/vapi.sdk"
+import {interviewer} from "@/constants"
 
 
 enum CallStatus{
@@ -69,10 +70,21 @@ const Agent = ({userName,
         vapi.off('speech-end', onSpeechEnd);
         vapi.off('error', onError);
       }
-  })
+  }, [])
+  
+  const handleGenerateFeedback = async (messages: SavedMessage[]) => {
+    console.log('Generated feedback here. ');
+
+  }
 
   useEffect(() => {
-     if(callStatus === CallStatus.FINISHED) router.push('/');
+     if(callStatus === CallStatus.FINISHED) {
+      if(type === 'generate'){
+        router.push('/');
+      }else{
+        handleGenerateFeedback(messages);
+      }
+     }
   },[messages, callStatus, type, userId]) ;
 
   const handleCall = async () => {
@@ -93,11 +105,11 @@ const Agent = ({userName,
           .join("\n");
       }
 
-      // await vapi.start(interviewer, {
-      //   variableValues: {
-      //     questions: formattedQuestions,
-      //   },
-      // });
+      await vapi.start(interviewer, {
+        variableValues: {
+          questions: formattedQuestions,
+        },
+      });
     }
   };
 
