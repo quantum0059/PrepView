@@ -1,11 +1,23 @@
-import { BUILD_MANIFEST } from 'next/dist/shared/lib/constants'
 import React from 'react'
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { dummyInterviews } from '@/constants';
 import InterviewCard from '@/components/InterviewCard';
-const page = () => {
+import { getCurrentUser, getInterviewsByUserId, getLatestInterviews } from '@/lib/actions/auth.action';
+const page = async() => {
+  const user = await getCurrentUser();
+  //now to fetch the interviwes from the user and the latest interviews which is not created by user
+  //for this we have to use parallel requests
+  const [userInterviews, latestInterviews] = await Promise.all([
+      await getInterviewsByUserId(user?.id!),
+      await getLatestInterviews({userId: user?.id!})
+  ])
+
+
+  const hasPastInterviews = userInterviews && userInterviews?.length > 0;
+  const upcomingInterviews = latestInterviews && latestInterviews?.length>0;
+
   return (
     <>
        <section className="card-cta">
@@ -29,9 +41,16 @@ const page = () => {
          <h2>Your Interview</h2>
 
          <div className="interviews-section">
-            {dummyInterviews.map((interview) => (
-              <InterviewCard {...interview} key = {interview?.id}/>
-            ))}
+            {
+              hasPastInterviews ? (
+                userInterviews?.map((interview) => (
+                  <InterviewCard {...interview} key={interview?.id}/>
+                ))) : (
+                  <p>You Haven't Taken Any Interviews yet</p>
+                )
+            }
+              
+              
          </div> 
 
        </section>
@@ -40,9 +59,14 @@ const page = () => {
          <h2>Take an Interview</h2>
 
          <div className="interviews-section">
-         {dummyInterviews.map((interview) => (
-              <InterviewCard {...interview} key = {interview?.id}/>
-            ))}
+           {
+              upcomingInterviews ? (
+                latestInterviews?.map((interview) => (
+                  <InterviewCard {...interview} key={interview?.id}/>
+                ))) : (
+                  <p>There are no new interviews available at the moment</p>
+                )
+            }
          </div> 
 
        </section>
