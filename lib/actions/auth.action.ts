@@ -146,11 +146,11 @@ export async function getCurrentUser():Promise<User | null> {
                                 .doc(decodeClaims.uid)
                                 .get();
 
-          if(!userRecord) return null;
+          if(!userRecord.exists) return null;
 
           return{
             ...userRecord.data(),
-            id:userRecord.id,
+            id: decodeClaims.uid,
           } as User;
 
 

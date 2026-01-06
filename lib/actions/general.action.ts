@@ -32,10 +32,17 @@ export async function getLatestInterviews(params: GetLatestInterviewsParams): Pr
 }
 
 export async function getInterviewById(id: string): Promise<Interview| null>{
-    const interviews = await db.collection('interviews')
+    const interviewDoc = await db.collection('interviews')
                                .doc(id).get();
 
-    return interviews.data() as Interview | null;
+    if(!interviewDoc.exists){
+        return null;
+    }
+
+    return {
+        id: interviewDoc.id,
+        ...interviewDoc.data()
+    } as Interview;
 }
 
 export async function createFeedback(params: CreateFeedbackParams){
