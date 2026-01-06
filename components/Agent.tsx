@@ -33,8 +33,12 @@ const Agent = ({userName,
   const [messages, setMessage] = useState<SavedMessage[]>([]);
 
   useEffect(() => {
-     const onCallStart = () => setCallStatus(CallStatus.ACTIVE);
-     const onCallEnd = () => setCallStatus(CallStatus.FINISHED);
+    const onCallStart = () => {
+      setCallStatus(CallStatus.ACTIVE);
+    };
+     const onCallEnd = () => {
+       setCallStatus(CallStatus.FINISHED);
+     }
 
      const onMessage = (message: Message) => {
       if(message.type === 'transcript' && message.transcriptType === 'final'){
@@ -47,8 +51,14 @@ const Agent = ({userName,
       }
      }
 
-     const onSpeechStart = () => setIsSpeaking(true);
-     const onSpeechEnd = () => setIsSpeaking(false);
+     const onSpeechStart = () => {
+       console.log("speech start");
+       setIsSpeaking(true);
+     }
+     const onSpeechEnd = () => {
+      console.log("speech end");
+      setIsSpeaking(false);
+    }
 
      const onError = (error: Error) => console.log('Error', error);
 
@@ -79,8 +89,9 @@ const Agent = ({userName,
     const {success, feedbackId: id} = await createFeedback({
       interviewId: interviewId!,
       userId: userId!,
-      transcript: messages
-    })
+      transcript: messages,
+      feedbackId,
+    });
 
     if(success && id){
       router.push(`/interview/${interviewId}/feedback`);
@@ -99,7 +110,7 @@ const Agent = ({userName,
         handleGenerateFeedback(messages);
       }
      }
-  },[messages, callStatus, type, userId]) ;
+  },[messages, callStatus, type, userId, feedbackId, router]) ;
 
   const handleCall = async () => {
     setCallStatus(CallStatus.CONNECTING);
@@ -183,7 +194,7 @@ const Agent = ({userName,
         </div>
       )}
 
-       <div className="w-full justify-center">
+       <div className="w-full flex justify-center">
           {callStatus !== 'ACTIVE' ? (
               <button className="relative btn-call " onClick={handleCall}>
                 <span className={cn('absolute animate-ping rounded-full opacity-75', 
@@ -204,4 +215,4 @@ const Agent = ({userName,
   )
 }
 
- export default Agent 
+ export default Agent ;
