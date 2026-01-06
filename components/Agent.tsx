@@ -116,6 +116,7 @@ const Agent = ({userName,
     setCallStatus(CallStatus.CONNECTING);
   
     if (!process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID) {
+      console.log(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID);
       console.error("Workflow ID missing");
       return;
     }
