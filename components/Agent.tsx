@@ -114,25 +114,65 @@ const Agent = ({userName,
 
   const handleCall = async () => {
     setCallStatus(CallStatus.CONNECTING);
+
+    try {
+      if(type === 'generate'){
+        if (!process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID) {
+          console.error("Workflow ID missing");
+          setCallStatus(CallStatus.INACTIVE);
+          return;
+        }
   
-    if (!process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID) {
-      console.log(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID);
-      console.error("Workflow ID missing");
-      return;
-    }
-  
-    await vapi.start(
-      undefined,
-      undefined,
-      undefined,
-      process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID,
-      {
-        variableValues: {
-          username: userName,
-          userid: userId,
-        },
+        await vapi.start(
+          undefined,
+          undefined,
+          undefined,
+          process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID,
+          {
+            variableValues: {
+              username: userName,
+              userid: userId,
+            },
+          }
+        );
+      } else {
+        // Format questions for the interview
+        let formattedQuestions = "";
+        if(questions && questions.length > 0){
+          formattedQuestions = questions
+            .map((question) => `- ${question}`)
+            .join("\n");
+        }
+
+        // Clone the interviewer config and replace the {{questions}} placeholder
+        if (!interviewer.model || !interviewer.model.messages) {
+          console.error("Invalid interviewer configuration");
+          setCallStatus(CallStatus.INACTIVE);
+          return;
+        }
+
+        const interviewerConfig: typeof interviewer = {
+          ...interviewer,
+          model: {
+            ...interviewer.model,
+            messages: interviewer.model.messages.map((msg) => {
+              if (msg.role === 'system' && msg.content) {
+                return {
+                  ...msg,
+                  content: msg.content.replace('{{questions}}', formattedQuestions || 'No questions provided.')
+                };
+              }
+              return msg;
+            })
+          }
+        };
+
+        await vapi.start(interviewerConfig);
       }
-    );
+    } catch (error) {
+      console.error('Error starting call:', error);
+      setCallStatus(CallStatus.INACTIVE);
+    }
   };
   
 
