@@ -13,6 +13,8 @@ import {useRouter} from "next/navigation";
 import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
 import {auth} from "@/firebase/client";
 import { signUp, signIn } from "@/lib/actions/auth.action";
+import { useState } from "react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 //sonner toast is shadcn compoenent used for define error more specifically
 
 
@@ -31,6 +33,7 @@ const signUpSchema = z.object({
 
 const AuthForm = ({type}: {type: FormType}) => {
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
     const formSchema = type === "sign-in" ? signInSchema : signUpSchema;
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -69,7 +72,11 @@ const AuthForm = ({type}: {type: FormType}) => {
                     return;
                 }
                 toast.success('Account created successfully. Please sign in.');
-                router.push('/sign-in');
+                setIsLoading(true);
+                // Small delay to ensure loading screen is visible, then navigate
+                setTimeout(() => {
+                    router.push('/sign-in');
+                }, 300);
             }else{
 
                 const {email, password} = values as { email: string; password: string };
@@ -111,9 +118,11 @@ const AuthForm = ({type}: {type: FormType}) => {
                 
                 // Show toast first
                 toast.success('Signed-in successfully.');
-                
-                // Use router.push directly - Next.js handles the navigation
-                router.push('/');
+                setIsLoading(true);
+                // Small delay to ensure loading screen is visible, then navigate
+                setTimeout(() => {
+                    router.push('/');
+                }, 300);
             }
         } catch (error: any) {
             console.error("Auth error:", error);
@@ -146,7 +155,9 @@ const AuthForm = ({type}: {type: FormType}) => {
     const isSignIn = type === "sign-in";
     
   return (
-    <div className="card-border lg:min-w-[566px]">
+    <>
+      {isLoading && <LoadingSpinner />}
+      <div className="card-border lg:min-w-[566px]">
         <div className="flex flex-col gap-6 card py-14 px-10">
            <div className="flex flex-row gap-2 justify-center">
                 <Image src="/logo.svg" alt="logo" height={32} width={38}/>
@@ -190,6 +201,7 @@ const AuthForm = ({type}: {type: FormType}) => {
         </p>
         </div>
     </div>
+    </>
   )
 }
 

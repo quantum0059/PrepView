@@ -65,6 +65,21 @@ export async function signIn(params: SignInParams){
             };
         }
 
+        // Ensure user exists in Firestore - create if they don't exist
+        const userRef = db.collection('users').doc(decodedToken.uid);
+        const userSnap = await userRef.get();
+        
+        if (!userSnap.exists) {
+            // User exists in Firebase Auth but not in Firestore - create the record
+            console.log("SignIn: User not found in Firestore, creating user record");
+            const userName = decodedToken.name || email.split('@')[0]; // Use name from token or extract from email
+            await userRef.set({ 
+                name: userName, 
+                email: decodedToken.email 
+            });
+            console.log("SignIn: User record created in Firestore");
+        }
+
         // Create and set session cookie
         await setSessionCookie(idToken);
         console.log("SignIn: Session cookie set successfully");
@@ -154,8 +169,10 @@ export async function getCurrentUser():Promise<User | null> {
           } as User;
 
 
-    } catch (e) {
-        console.log(e);     
+    } catch (e: any) {
+        console.error("getCurrentUser error:", e);
+        console.error("Error code:", e?.code);
+        console.error("Error message:", e?.message);
 
         return null;
     }
