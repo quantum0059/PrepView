@@ -121,7 +121,7 @@ const AuthForm = ({type}: {type: FormType}) => {
                 setIsLoading(true);
                 // Small delay to ensure loading screen is visible, then navigate
                 setTimeout(() => {
-                    router.push('/');
+                    router.push('/dashboard');
                 }, 300);
             }
         } catch (error: any) {
