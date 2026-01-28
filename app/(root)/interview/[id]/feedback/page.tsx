@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/general.action";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/actions/auth.action";
+import RetakeInterviewButton from "@/components/RetakeInterviewButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -100,23 +101,14 @@ const Feedback = async ({params}: RouteParams) => {
 
       <div className="buttons">
         <Button className="btn-secondary flex-1">
-          <Link href="/" className="flex w-full justify-center">
+          <Link href="/dashboard" className="flex w-full justify-center">
             <p className="text-sm font-semibold text-primary-200 text-center">
               Back to dashboard
             </p>
           </Link>
         </Button>
 
-        <Button className="btn-primary flex-1">
-          <Link
-            href={`/interview/${id}`}
-            className="flex w-full justify-center"
-          >
-            <p className="text-sm font-semibold text-black text-center">
-              Retake Interview
-            </p>
-          </Link>
-        </Button>
+        <RetakeInterviewButton interviewId={id} userId={user.id}/>
       </div>
     </section>
   );

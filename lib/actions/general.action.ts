@@ -115,3 +115,24 @@ export async function getFeedbackByInterviewId(params: GetFeedbackByInterviewIdP
         id: feedbackDoc.id, ...feedbackDoc.data()
     } as Feedback;
 }
+
+export async function retakeInterview(params: {interviewId: string; userId: string}){
+    const {interviewId, userId} = params;
+
+    try {
+        const feedbackSnap = await db.collection("feedback")
+                                 .where("interviewId", "==", interviewId)
+                                 .where("userId", "==", userId)
+                                 .get();
+        const batch = db.batch();
+        feedbackSnap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+
+        return{
+            success: true,
+        };
+    } catch (e) {
+        console.error("retakeInterview error:", e);
+        return { success: false };
+    }
+}

@@ -184,3 +184,40 @@ export async function isAuthenticated(){
     return !!user;
 }
 
+export async function logOut(){
+    try {
+        const cookieStore = await cookies();
+
+        const sessionCookie = cookieStore.get("session")?.value;
+
+        if(sessionCookie){
+            try {
+                const decode = await auth.verifySessionCookie(sessionCookie);
+
+                await auth.revokeRefreshTokens(decode.sub || decode.uid);
+            } catch (error) {
+                console.error("Error revoking session cookie");
+            }
+        }
+
+        cookieStore.set("session", "", {
+            maxAge: 0,
+            httpOnly: true,
+            secure:process.env.NODE_ENV === "production",
+            path: "/",
+            sameSite: "lax",
+        });
+
+        return{
+            success: true,
+            message: "Logged out successfully"
+        }
+    } catch (e) {
+        console.error("Error logging out:", e);
+        return {
+        success: false,
+        message: "Failed to log out",
+        };
+    }
+}
+
