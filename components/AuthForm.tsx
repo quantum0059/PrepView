@@ -75,7 +75,7 @@ const AuthForm = ({type}: {type: FormType}) => {
                 setIsLoading(true);
                 // Small delay to ensure loading screen is visible, then navigate
                 setTimeout(() => {
-                    router.push('/sign-in');
+                router.push('/sign-in');
                 }, 300);
             }else{
 
@@ -157,7 +157,7 @@ const AuthForm = ({type}: {type: FormType}) => {
   return (
     <>
       {isLoading && <LoadingSpinner />}
-      <div className="card-border lg:min-w-[566px]">
+    <div className="card-border lg:min-w-[566px]">
         <div className="flex flex-col gap-6 card py-14 px-10">
            <div className="flex flex-row gap-2 justify-center">
                 <Image src="/logo.svg" alt="logo" height={32} width={38}/>

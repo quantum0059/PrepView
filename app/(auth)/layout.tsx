@@ -4,9 +4,13 @@ import {redirect} from "next/navigation";
 
 const Authlayout = async ({children} : {children: ReactNode}) => {
   const isUserAuthenticated = await isAuthenticated();
-  if(isUserAuthenticated) redirect('/');
+  if(isUserAuthenticated) redirect('/dashboard');
   return (
-    <div className="auth-layout">{children}</div>
+    <>
+      <div className="auth-layout pt-20">
+        {children}
+      </div>
+    </>
   )
 }
 
