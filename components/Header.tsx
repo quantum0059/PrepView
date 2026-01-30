@@ -8,13 +8,17 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SiReadthedocs } from "react-icons/si";
 import { TbPresentationAnalytics } from "react-icons/tb";
-import {  MdKeyboardArrowDown } from "react-icons/md";
+import {  MdKeyboardArrowDown, MdLogout } from "react-icons/md";
 import {
   PiMagicWandDuotone,
   PiUserFocusFill,
 } from "react-icons/pi";
+import { FaGraduationCap } from "react-icons/fa";
 import { HiMenuAlt2, HiX } from "react-icons/hi";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { logOut } from "@/lib/actions/auth.action";
+import {toast} from "sonner";
 
 const navigationItems = [
     {
@@ -91,7 +95,10 @@ const Header06 = ({ user}: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState<number | null>(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const toggleAccordion = (id: number) => {
     setActiveAccordion(activeAccordion === id ? null : id);
@@ -128,6 +135,31 @@ const Header06 = ({ user}: HeaderProps) => {
     return () => scrollParent.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if(userMenuRef.current && !userMenuRef.current.contains(event.target as Node)){
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if(isUserMenuOpen){
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
+
+  const handleLogOut = async() => {
+    const result = await logOut();
+    if(result.success){
+      toast.success("LogOut Successfully");
+      router.push("/");
+      router.refresh();
+    }
+  }
+
   return (
     <motion.div ref={headerRef} className="fixed top-0 left-0 z-50 w-full px-2 pt-2">
       <div
@@ -145,11 +177,65 @@ const Header06 = ({ user}: HeaderProps) => {
 
         <div className="flex items-center gap-3 text-sm font-medium">
           {user ? (
-            <Link href="/"
-               className="flex items-center justify-center h-10 w-10 rounded-full bg-primary-200 text-dark-100 font-bold text-lg hover:bg-primary-200/80 transition-all duration-100"
-               >
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center justify-center h-10 w-10 rounded-full bg-primary-200 text-dark-100 font-bold text-lg hover:bg-primary-200/80 transition-all duration-100 cursor-pointer"
+              >
                 {user.name?.charAt(0).toUpperCase() || 'U'}
-            </Link>
+              </button>
+
+              <AnimatePresence>
+                {isUserMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-64 rounded-lg bg-dark-200 border border-primary-200/20 shadow-lg z-50 overflow-hidden"
+                  >
+                    {/* User Info Section */}
+                    <div className="px-4 py-3 border-b border-primary-200/20">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary-200 text-dark-100 font-bold text-lg">
+                          {user.name?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-primary-100 truncate">
+                            {user.name?.toUpperCase() || 'USER'}
+                          </p>
+                          <p className="text-xs text-light-100 truncate">
+                            {user.email || ''}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Options */}
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          router.push('/dashboard');
+                        }}
+                        className="w-full px-4 py-2 flex items-center gap-3 text-sm text-primary-100 hover:bg-dark-300 transition-colors"
+                      >
+                        <FaGraduationCap className="h-4 w-4" />
+                        <span>Profile</span>
+                      </button>
+
+                      <button
+                        onClick={handleLogOut}
+                        className="w-full px-4 py-2 flex items-center gap-3 text-sm text-destructive-100 hover:bg-dark-300 transition-colors"
+                      >
+                        <MdLogout className="h-4 w-4" />
+                        <span>Sign out</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           ): (
             <Button
               asChild
