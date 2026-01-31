@@ -4,6 +4,7 @@ import { db, auth } from "@/firebase/admin";
 import {generateObject} from 'ai';
 import { google } from "@ai-sdk/google";
 export async function getInterviewsByUserId(userId: string): Promise<Interview[] | null>{
+    if (!userId) return null;
     const interviews = await db.collection('interviews')
                                .where('userId', '==', userId)
                                .orderBy('createdAt', 'desc')
@@ -17,6 +18,7 @@ export async function getInterviewsByUserId(userId: string): Promise<Interview[]
 
 export async function getLatestInterviews(params: GetLatestInterviewsParams): Promise<Interview[] | null>{
     const {userId, limit = 20} = params;
+    if (!userId) return null;
     
     const interviews = await db.collection('interviews')
                                .orderBy('createdAt', 'desc')
