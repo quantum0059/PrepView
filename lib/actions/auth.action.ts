@@ -128,7 +128,7 @@ export async function setSessionCookie(idToken: string){
         const cookieStore = await cookies();
 
         const sessionCookie = await auth.createSessionCookie(idToken, {
-            expiresIn: ONE_WEEK,
+            expiresIn: ONE_WEEK * 1000,
         });
 
         cookieStore.set('session', sessionCookie, {
@@ -217,6 +217,43 @@ export async function logOut(){
         return {
         success: false,
         message: "Failed to log out",
+        };
+    }
+}
+
+export async function updateUserProfile(params: {
+    userId: string;
+    bio?: string;
+    link1?: string;
+    link2?: string;
+    link3?: string;
+    link4?: string;
+    image?: string | null;
+}){
+    const { userId, bio, link1, link2, link3, link4, image } = params;
+    
+    try {
+        const userRef = db.collection('users').doc(userId);
+        
+        const updateData: any = {};
+        if (bio !== undefined) updateData.bio = bio;
+        if (link1 !== undefined) updateData.link1 = link1;
+        if (link2 !== undefined) updateData.link2 = link2;
+        if (link3 !== undefined) updateData.link3 = link3;
+        if (link4 !== undefined) updateData.link4 = link4;
+        if (image !== undefined) updateData.image = image;
+        
+        await userRef.update(updateData);
+        
+        return {
+            success: true,
+            message: 'Profile updated successfully'
+        };
+    } catch (e: any) {
+        console.error("Error updating profile:", e);
+        return {
+            success: false,
+            message: 'Failed to update profile'
         };
     }
 }

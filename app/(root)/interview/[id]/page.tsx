@@ -32,7 +32,8 @@ const page = async ({params}: RouteParams) => {
               userId={user?.id}
               interviewId={id}
               type="interview"
-              questions={interview.questions}/>
+              questions={interview.questions}
+              userImage={user?.image || null}/>
     </>
   )
 }

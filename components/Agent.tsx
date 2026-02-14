@@ -25,7 +25,8 @@ const Agent = ({userName,
   interviewId,
   feedbackId,
   type,
-  questions,}: AgentProps) => {
+  questions,
+  userImage,}: AgentProps) => {
 
   const router = useRouter();
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -210,12 +211,21 @@ const Agent = ({userName,
 
         <div className="card-border">
             <div className="card-content">
-               <Image src="/user-avatar.png"
-                 alt="user avatar"
-                 width={540}
-                 height={540}
-                 className='rounded-full object-cover size-[120px]'
-               />
+               {userImage ? (
+                 <div className="relative size-[120px] rounded-full overflow-hidden">
+                   <Image 
+                     src={userImage}
+                     alt="user avatar"
+                     fill
+                     className='object-cover'
+                     unoptimized
+                   />
+                 </div>
+               ) : (
+                 <div className="flex items-center justify-center size-[120px] rounded-full bg-primary-200 text-dark-100 text-4xl font-bold">
+                   {userName?.charAt(0).toUpperCase() || 'U'}
+                 </div>
+               )}
 
                <h3>{userName}</h3>
             </div>

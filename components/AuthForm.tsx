@@ -86,7 +86,7 @@ const AuthForm = ({type}: {type: FormType}) => {
                 const userCredentials = await signInWithEmailAndPassword(auth, email, password);
                 console.log("AuthForm: Firebase Auth successful");
 
-                const idToken = await userCredentials.user.getIdToken();
+                const idToken = await userCredentials.user.getIdToken(true);
                 console.log("AuthForm: Got idToken");
                 
                 if(!idToken){

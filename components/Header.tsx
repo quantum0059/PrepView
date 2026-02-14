@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SiReadthedocs } from "react-icons/si";
 import { TbPresentationAnalytics } from "react-icons/tb";
-import {  MdKeyboardArrowDown, MdLogout } from "react-icons/md";
+import {  MdKeyboardArrowDown, MdLogout, MdDashboard } from "react-icons/md";
 import {
   PiMagicWandDuotone,
   PiUserFocusFill,
@@ -88,6 +88,7 @@ const navigationItems = [
         name: string;
         email: string;
         id: string;
+        image?: string;
     } | null;
   }
 
@@ -180,9 +181,19 @@ const Header06 = ({ user}: HeaderProps) => {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center justify-center h-10 w-10 rounded-full bg-primary-200 text-dark-100 font-bold text-lg hover:bg-primary-200/80 transition-all duration-100 cursor-pointer"
+                className="relative flex items-center justify-center h-10 w-10 rounded-full bg-primary-200 text-dark-100 font-bold text-lg hover:bg-primary-200/80 transition-all duration-100 cursor-pointer overflow-hidden"
               >
-                {user.name?.charAt(0).toUpperCase() || 'U'}
+                {user.image ? (
+                  <Image 
+                    src={user.image} 
+                    alt={user.name || 'User'} 
+                    fill 
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <span>{user.name?.charAt(0).toUpperCase() || 'U'}</span>
+                )}
               </button>
 
               <AnimatePresence>
@@ -197,8 +208,18 @@ const Header06 = ({ user}: HeaderProps) => {
                     {/* User Info Section */}
                     <div className="px-4 py-3 border-b border-primary-200/20">
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary-200 text-dark-100 font-bold text-lg">
-                          {user.name?.charAt(0).toUpperCase() || 'U'}
+                        <div className="relative flex items-center justify-center h-10 w-10 rounded-full bg-primary-200 text-dark-100 font-bold text-lg overflow-hidden">
+                          {user.image ? (
+                            <Image 
+                              src={user.image} 
+                              alt={user.name || 'User'} 
+                              fill 
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <span>{user.name?.charAt(0).toUpperCase() || 'U'}</span>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-primary-100 truncate">
@@ -217,6 +238,17 @@ const Header06 = ({ user}: HeaderProps) => {
                         onClick={() => {
                           setIsUserMenuOpen(false);
                           router.push('/dashboard');
+                        }}
+                        className="w-full px-4 py-2 flex items-center gap-3 text-sm text-primary-100 hover:bg-dark-300 transition-colors"
+                      >
+                        <MdDashboard className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          router.push('/profile');
                         }}
                         className="w-full px-4 py-2 flex items-center gap-3 text-sm text-primary-100 hover:bg-dark-300 transition-colors"
                       >
