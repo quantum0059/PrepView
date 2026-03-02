@@ -10,8 +10,8 @@ import Link from "next/link"
 import {toast} from "sonner";
 import FormField from "@/components/FormField"
 import {useRouter} from "next/navigation";
-import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
-import {auth} from "@/firebase/client";
+import {createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup} from "firebase/auth";
+import {auth, googleProvider} from "@/firebase/client";
 import { signUp, signIn } from "@/lib/actions/auth.action";
 import { useState } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -152,6 +152,51 @@ const AuthForm = ({type}: {type: FormType}) => {
         }
     }
 
+    async function handleGoogleSignIn() {
+        try {
+          setIsLoading(true);
+    
+          // 1) Ask Firebase Auth to sign in with Google
+          const result = await signInWithPopup(auth, googleProvider);
+          const user = result.user;
+    
+          if (!user.email) {
+            toast.error("Google account has no email.");
+            setIsLoading(false);
+            return;
+          }
+    
+          // 2) Get ID token from Firebase user
+          const idToken = await user.getIdToken(true);
+    
+          // 3) Call existing server action – it will:
+          //    - verify token
+          //    - create Firestore user if missing
+          //    - set session cookie
+          const serverResult = await signIn({
+            email: user.email,
+            idToken,
+          });
+    
+          if (!serverResult || !serverResult.success) {
+            toast.error(serverResult?.message || "Failed to sign in with Google");
+            setIsLoading(false);
+            return;
+          }
+    
+          toast.success("Signed in with Google");
+          router.push("/dashboard");
+        } catch (error: any) {
+          console.error("Google sign-in error:", error);
+          const msg =
+            error?.code === "auth/popup-closed-by-user"
+              ? "Sign-in popup was closed."
+              : "Failed to sign in with Google.";
+          toast.error(msg);
+          setIsLoading(false);
+        }
+      }
+
     const isSignIn = type === "sign-in";
     
   return (
@@ -165,32 +210,67 @@ const AuthForm = ({type}: {type: FormType}) => {
            </div>
            <h3 className="text-center">Practise job interview with AI</h3>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(
+            <form
+              onSubmit={form.handleSubmit(
                 onSubmit,
                 (errors) => {
-                    console.log("Form validation errors:", errors);
-                    toast.error("Please fix the form errors");
+                  console.log("Form validation errors:", errors);
+                  toast.error("Please fix the form errors");
                 }
-            )} className="w-full space-y-6 mt-4 form">
-                 {!isSignIn &&  (
-                    <FormField control={form.control} 
-                               name="name" 
-                               label="Name" 
-                               placeholder="Your Name"/>
-                 )} 
-                  <FormField control={form.control} 
-                               name="email" 
-                               label="Email" 
-                               placeholder="Your email address"
-                               type="email"
-                               />
-                  <FormField control={form.control} 
-                               name="password" 
-                               label="password" 
-                               placeholder="Enter your password"
-                               type="password"
-                               />
-                <Button className="btn" type="submit">{isSignIn ? 'Sign in' : 'Create an account'}</Button>
+              )}
+              className="w-full space-y-6 mt-4 form"
+            >
+              {!isSignIn && (
+                <FormField
+                  control={form.control}
+                  name="name"
+                  label="Name"
+                  placeholder="Your Name"
+                />
+              )}
+              <FormField
+                control={form.control}
+                name="email"
+                label="Email"
+                placeholder="Your email address"
+                type="email"
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                label="password"
+                placeholder="Enter your password"
+                type="password"
+              />
+
+              <Button className="btn" type="submit">
+                {isSignIn ? "Sign in" : "Create an account"}
+              </Button>
+
+              {isSignIn && (
+                <>
+                  <div className="flex items-center gap-3 pt-1">
+                    <div className="h-px flex-1 bg-dark-200" />
+                    <span className="text-xs text-light-100/60">or</span>
+                    <div className="h-px flex-1 bg-dark-200" />
+                  </div>
+                  <Button
+                    type="button"
+                    className="w-full mt-2 flex items-center justify-center gap-2 bg-white text-dark-100 hover:bg-gray-100 rounded-full border border-input text-sm font-medium transition-all"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading}
+                  >
+                    <Image
+                      src="/google-logo.svg"
+                      alt="Google"
+                      width={18}
+                      height={18}
+                      className="mr-1"
+                    />
+                    <span>Sign in with Google</span>
+                  </Button>
+                </>
+              )}
             </form>
         </Form>
         <p className="text-center">
