@@ -139,11 +139,13 @@ const AuthForm = ({type}: {type: FormType}) => {
       getRedirectResult(auth)
         .then(async (result) => {
           if (!result) {
-            // No redirect in progress — normal page load, do nothing
+            // DEBUG: shows in production so we know null was returned
+            toast.info("DEBUG: getRedirectResult returned null (no redirect in progress)");
             return;
           }
           // A Google redirect just completed — show spinner while we finish
           setIsLoading(true);
+          toast.info(`DEBUG: Got user: ${result.user.email}`);
           const user = result.user;
           if (!user.email) {
             toast.error("Google account has no email.");
@@ -151,27 +153,20 @@ const AuthForm = ({type}: {type: FormType}) => {
             return;
           }
           const idToken = await user.getIdToken(true);
+          toast.info("DEBUG: Got idToken, calling server signIn...");
           const serverResult = await signIn({ email: user.email, idToken });
+          toast.info(`DEBUG: Server result: ${JSON.stringify(serverResult)}`);
           if (!serverResult || !serverResult.success) {
             toast.error(serverResult?.message || "Failed to sign in with Google");
             setIsLoading(false);
             return;
           }
           toast.success("Signed in with Google!");
-          // Use replace so sign-in page is removed from history (no back-button loop)
           router.replace("/dashboard");
         })
         .catch((error: any) => {
           console.error("Google redirect result error:", error);
-          let msg = "Failed to sign in with Google.";
-          if (error?.code === "auth/operation-not-allowed") {
-            msg = "Google Sign-In is not enabled in Firebase Console.";
-          } else if (error?.code === "auth/unauthorized-domain") {
-            msg = "This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains.";
-          } else if (error?.message) {
-            msg = error.message;
-          }
-          toast.error(msg);
+          toast.error(`DEBUG ERROR: ${error?.code} — ${error?.message}`);
           setIsLoading(false);
         });
     }, []);
