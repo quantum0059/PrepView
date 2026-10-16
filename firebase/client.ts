@@ -4,10 +4,15 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// authDomain is derived from NEXT_PUBLIC_BASE_URL in production
+// so that signInWithRedirect stays same-origin (fixes getRedirectResult on Vercel)
+const productionAuthDomain = process.env.NEXT_PUBLIC_BASE_URL
+  ?.replace(/^https?:\/\//, "")  // remove https://
+  .replace(/\/$/, "");           // remove trailing slash
+
 const firebaseConfig = {
   apiKey: "AIzaSyDuSVSPqLyQenGALHJzvM473qDyiT7jWZM",
-  authDomain: "prepwise-1d3ac.firebaseapp.com",
+  authDomain: productionAuthDomain ?? "prepwise-1d3ac.firebaseapp.com",
   projectId: "prepwise-1d3ac",
   storageBucket: "prepwise-1d3ac.firebasestorage.app",
   messagingSenderId: "988336814532",
