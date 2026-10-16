@@ -13,7 +13,7 @@ import {useRouter} from "next/navigation";
 import {createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult} from "firebase/auth";
 import {auth, googleProvider} from "@/firebase/client";
 import { signUp, signIn } from "@/lib/actions/auth.action";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 //sonner toast is shadcn compoenent used for define error more specifically
 
@@ -34,6 +34,7 @@ const signUpSchema = z.object({
 const AuthForm = ({type}: {type: FormType}) => {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const redirectProcessed = useRef(false);
     const formSchema = type === "sign-in" ? signInSchema : signUpSchema;
     const form = useForm<{ name?: string; email: string; password: string }>({
         resolver: zodResolver(formSchema),
@@ -132,14 +133,17 @@ const AuthForm = ({type}: {type: FormType}) => {
 
     // Handle the result after Google redirects the user back to the app
     useEffect(() => {
-      setIsLoading(true);
+      if (redirectProcessed.current) return;
+      redirectProcessed.current = true;
+
       getRedirectResult(auth)
         .then(async (result) => {
           if (!result) {
-            // No redirect was in progress, normal page load
-            setIsLoading(false);
+            // No redirect in progress — normal page load, do nothing
             return;
           }
+          // A Google redirect just completed — show spinner while we finish
+          setIsLoading(true);
           const user = result.user;
           if (!user.email) {
             toast.error("Google account has no email.");
@@ -153,8 +157,9 @@ const AuthForm = ({type}: {type: FormType}) => {
             setIsLoading(false);
             return;
           }
-          toast.success("Signed in with Google");
-          router.push("/dashboard");
+          toast.success("Signed in with Google!");
+          // Use replace so sign-in page is removed from history (no back-button loop)
+          router.replace("/dashboard");
         })
         .catch((error: any) => {
           console.error("Google redirect result error:", error);
@@ -162,7 +167,7 @@ const AuthForm = ({type}: {type: FormType}) => {
           if (error?.code === "auth/operation-not-allowed") {
             msg = "Google Sign-In is not enabled in Firebase Console.";
           } else if (error?.code === "auth/unauthorized-domain") {
-            msg = "This domain is not authorized. Check Firebase Console > Authentication > Settings > Authorized domains.";
+            msg = "This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains.";
           } else if (error?.message) {
             msg = error.message;
           }
