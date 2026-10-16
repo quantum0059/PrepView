@@ -6,9 +6,11 @@ import {Button } from "@/components/ui/button"
 import Link from "next/link"
 import DisplayTechIcons from './DisplayTechIcons';
 import { getFeedbackByInterviewId } from '@/lib/actions/general.action';
+import { getCurrentUser } from '@/lib/actions/auth.action';
 
-const InterviewCard = async ({id, userId, role, type, techstack, createdAt}: InterviewCardProps) => {
-    const feedback = userId && id ? await getFeedbackByInterviewId({interviewId:id, userId}) : null;
+const InterviewCard = async ({id, userId, currentUserId, role, type, techstack, createdAt}: InterviewCardProps) => {
+    const activeUserId = currentUserId || (await getCurrentUser())?.id;
+    const feedback = activeUserId && id ? await getFeedbackByInterviewId({interviewId:id, userId: activeUserId}) : null;
     const normalizedType = /mix/gi.test(type) ? 'Mixed' : type;
     const formattedDate = dayjs(feedback?.createdAt || createdAt || Date.now()).format('MMM D, YYYY');
     return (
@@ -38,7 +40,7 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt}: Int
             </div>
             
             <p className="line-clamp-2 mt-5">
-                {feedback?.finalAssessment || "You haven't take the interview yet. Take it to improve your skills"}
+                {feedback?.finalAssessment || "You haven't taken the interview yet. Take it to improve your skills"}
             </p>
 
            </div>
@@ -48,7 +50,7 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt}: Int
 
                 <Button className="btn-primary">
                    <Link href={feedback ? `/interview/${id}/feedback` : `/interview/${id}`}>
-                         {feedback ? 'Check Feedback' : 'View Interview'}
+                         {feedback ? 'Check Feedback' : 'Take Interview'}
                    </Link>
                 </Button>
            </div>

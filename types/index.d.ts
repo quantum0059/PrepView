@@ -47,6 +47,7 @@ interface User {
 interface InterviewCardProps {
   id?: string;
   userId?: string;
+  currentUserId?: string;
   role: string;
   type: string;
   techstack: string[];
@@ -60,6 +61,7 @@ interface AgentProps {
   feedbackId?: string;
   type: "generate" | "interview";
   questions?: string[];
+  userImage?: string | null;
 }
 
 interface RouteParams {

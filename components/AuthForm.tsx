@@ -35,18 +35,13 @@ const AuthForm = ({type}: {type: FormType}) => {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const formSchema = type === "sign-in" ? signInSchema : signUpSchema;
-    const form = useForm({
+    const form = useForm<{ name?: string; email: string; password: string }>({
         resolver: zodResolver(formSchema),
-        defaultValues: type === "sign-in" 
-          ? {
-              email: "",
-              password: ""
-            }
-          : {
-              name: "",
-              email: "",
-              password: ""
-            },
+        defaultValues: {
+            name: "",
+            email: "",
+            password: "",
+        },
       })
     
       // 2. Define a submit handler.
@@ -185,13 +180,24 @@ const AuthForm = ({type}: {type: FormType}) => {
           }
     
           toast.success("Signed in with Google");
-          router.push("/dashboard");
+          router.refresh();
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 300);
         } catch (error: any) {
           console.error("Google sign-in error:", error);
-          const msg =
-            error?.code === "auth/popup-closed-by-user"
-              ? "Sign-in popup was closed."
-              : "Failed to sign in with Google.";
+          let msg = "Failed to sign in with Google.";
+          if (error?.code === "auth/popup-closed-by-user") {
+            msg = "Sign-in popup was closed.";
+          } else if (error?.code === "auth/popup-blocked") {
+            msg = "Sign-in popup was blocked by browser. Please allow popups.";
+          } else if (error?.code === "auth/operation-not-allowed") {
+            msg = "Google Sign-In is not enabled in Firebase Console.";
+          } else if (error?.code === "auth/unauthorized-domain") {
+            msg = "Domain is not authorized in Firebase Console.";
+          } else if (error?.message) {
+            msg = error.message;
+          }
           toast.error(msg);
           setIsLoading(false);
         }
