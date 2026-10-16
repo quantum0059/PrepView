@@ -10,10 +10,10 @@ import Link from "next/link"
 import {toast} from "sonner";
 import FormField from "@/components/FormField"
 import {useRouter} from "next/navigation";
-import {createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup} from "firebase/auth";
+import {createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult} from "firebase/auth";
 import {auth, googleProvider} from "@/firebase/client";
 import { signUp, signIn } from "@/lib/actions/auth.action";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 //sonner toast is shadcn compoenent used for define error more specifically
 
@@ -44,10 +44,7 @@ const AuthForm = ({type}: {type: FormType}) => {
         },
       })
     
-      // 2. Define a submit handler.
       async function onSubmit(values: any) {
-        console.log("onSubmit called with values:", values);
-        console.log("Form type:", type);
         try {
             if(type === 'sign-up'){
 
@@ -76,40 +73,26 @@ const AuthForm = ({type}: {type: FormType}) => {
 
                 const {email, password} = values as { email: string; password: string };
 
-                console.log("AuthForm: Starting sign in for:", email);
-
                 const userCredentials = await signInWithEmailAndPassword(auth, email, password);
-                console.log("AuthForm: Firebase Auth successful");
-
                 const idToken = await userCredentials.user.getIdToken(true);
-                console.log("AuthForm: Got idToken");
-                
+
                 if(!idToken){
                     console.error("AuthForm: No idToken received");
                     toast.error('Sign in failed - no token received');
                     return;
                 }
 
-                console.log("AuthForm: Calling signIn server action");
-                const result = await signIn({
-                    email, idToken
-                });
-
-                console.log("AuthForm: SignIn result:", result);
+                const result = await signIn({ email, idToken });
 
                 if(!result){
-                    console.error("AuthForm: No result returned from signIn");
                     toast.error('Sign in failed - no response from server');
                     return;
                 }
 
                 if(!result.success){
-                    console.error("AuthForm: SignIn failed:", result.message);
                     toast.error(result.message || 'Failed to sign in');
                     return;
                 }
-
-                console.log("AuthForm: Sign in successful, showing toast and redirecting");
                 
                 // Show toast first
                 toast.success('Signed-in successfully.');
@@ -147,61 +130,53 @@ const AuthForm = ({type}: {type: FormType}) => {
         }
     }
 
-    async function handleGoogleSignIn() {
-        try {
-          setIsLoading(true);
-    
-          // 1) Ask Firebase Auth to sign in with Google
-          const result = await signInWithPopup(auth, googleProvider);
+    // Handle the result after Google redirects the user back to the app
+    useEffect(() => {
+      setIsLoading(true);
+      getRedirectResult(auth)
+        .then(async (result) => {
+          if (!result) {
+            // No redirect was in progress, normal page load
+            setIsLoading(false);
+            return;
+          }
           const user = result.user;
-    
           if (!user.email) {
             toast.error("Google account has no email.");
             setIsLoading(false);
             return;
           }
-    
-          // 2) Get ID token from Firebase user
           const idToken = await user.getIdToken(true);
-    
-          // 3) Call existing server action – it will:
-          //    - verify token
-          //    - create Firestore user if missing
-          //    - set session cookie
-          const serverResult = await signIn({
-            email: user.email,
-            idToken,
-          });
-    
+          const serverResult = await signIn({ email: user.email, idToken });
           if (!serverResult || !serverResult.success) {
             toast.error(serverResult?.message || "Failed to sign in with Google");
             setIsLoading(false);
             return;
           }
-    
           toast.success("Signed in with Google");
-          router.refresh();
-          setTimeout(() => {
-            router.push("/dashboard");
-          }, 300);
-        } catch (error: any) {
-          console.error("Google sign-in error:", error);
+          router.push("/dashboard");
+        })
+        .catch((error: any) => {
+          console.error("Google redirect result error:", error);
           let msg = "Failed to sign in with Google.";
-          if (error?.code === "auth/popup-closed-by-user") {
-            msg = "Sign-in popup was closed.";
-          } else if (error?.code === "auth/popup-blocked") {
-            msg = "Sign-in popup was blocked by browser. Please allow popups.";
-          } else if (error?.code === "auth/operation-not-allowed") {
+          if (error?.code === "auth/operation-not-allowed") {
             msg = "Google Sign-In is not enabled in Firebase Console.";
           } else if (error?.code === "auth/unauthorized-domain") {
-            msg = "Domain is not authorized in Firebase Console.";
+            msg = "This domain is not authorized. Check Firebase Console > Authentication > Settings > Authorized domains.";
           } else if (error?.message) {
             msg = error.message;
           }
           toast.error(msg);
           setIsLoading(false);
-        }
-      }
+        });
+    }, []);
+
+    function handleGoogleSignIn() {
+      // Use redirect instead of popup — popups are blocked by browsers on
+      // production / cross-origin domains but redirect flow always works.
+      setIsLoading(true);
+      signInWithRedirect(auth, googleProvider);
+    }
 
     const isSignIn = type === "sign-in";
     
@@ -217,13 +192,7 @@ const AuthForm = ({type}: {type: FormType}) => {
            <h3 className="text-center">Practise job interview with AI</h3>
         <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(
-                onSubmit,
-                (errors) => {
-                  console.log("Form validation errors:", errors);
-                  toast.error("Please fix the form errors");
-                }
-              )}
+              onSubmit={form.handleSubmit(onSubmit)}
               className="w-full space-y-6 mt-4 form"
             >
               {!isSignIn && (
