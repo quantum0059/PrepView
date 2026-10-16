@@ -33,7 +33,11 @@ const signUpSchema = z.object({
 
 const AuthForm = ({type}: {type: FormType}) => {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(
+      // Show spinner immediately if returning from a Google redirect
+      typeof window !== "undefined" &&
+        sessionStorage.getItem("googleRedirectPending") === "true"
+    );
     const redirectProcessed = useRef(false);
     const formSchema = type === "sign-in" ? signInSchema : signUpSchema;
     const form = useForm<{ name?: string; email: string; password: string }>({
@@ -140,9 +144,12 @@ const AuthForm = ({type}: {type: FormType}) => {
         .then(async (result) => {
           if (!result) {
             // No redirect in progress — normal page load, do nothing
+            sessionStorage.removeItem("googleRedirectPending");
+            setIsLoading(false);
             return;
           }
           setIsLoading(true);
+          sessionStorage.removeItem("googleRedirectPending");
           const user = result.user;
           if (!user.email) {
             toast.error("Google account has no email.");
@@ -161,6 +168,7 @@ const AuthForm = ({type}: {type: FormType}) => {
         })
         .catch((error: any) => {
           console.error("Google redirect result error:", error);
+          sessionStorage.removeItem("googleRedirectPending");
           let msg = "Failed to sign in with Google.";
           if (error?.code === "auth/operation-not-allowed") {
             msg = "Google Sign-In is not enabled in Firebase Console.";
@@ -175,8 +183,9 @@ const AuthForm = ({type}: {type: FormType}) => {
     }, []);
 
     function handleGoogleSignIn() {
-      // Use redirect instead of popup — popups are blocked by browsers on
-      // production / cross-origin domains but redirect flow always works.
+      // Mark that a Google redirect is starting so the sign-in page
+      // can show the spinner immediately when it loads after the redirect.
+      sessionStorage.setItem("googleRedirectPending", "true");
       setIsLoading(true);
       signInWithRedirect(auth, googleProvider);
     }
